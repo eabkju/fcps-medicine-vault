@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-font-size="md">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f17">
+  <meta name="description" content="FCPS Part 1 Medicine Question Bank Explorer - High-Yield SBA & MCQ Practice Vault">
+  <title>FCPS Medicine Vault | Question Bank Explorer</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Bundled offline JSZip for zip extraction without internet -->
+  <script src="assets/jszip.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- Top Navigation Header -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <button id="sidebarToggleBtn" class="nav-btn" aria-label="Toggle Topic Menu" title="Browse Topics">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        </button>
+        <div class="brand">
+          <div class="brand-icon">⚕</div>
+          <span>FCPS Medicine Vault</span>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <!-- Always Show Answer Toggle Switch -->
+        <div id="alwaysShowToggle" class="toggle-wrapper" title="Toggle between Always Show Answer (Study Mode) and Hide Answer (Practice Mode)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span class="toggle-label">Always Show Answer</span>
+          <div class="toggle-switch"></div>
+        </div>
+
+        <!-- Font Size Selector Button -->
+        <button id="fontSizeBtn" class="nav-btn" title="Adjust Font Size" aria-label="Font Size">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V7a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v12M4 13h8M14 19V11a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v8M14 15h6"/></svg>
+        </button>
+
+        <!-- Theme Picker Button -->
+        <button id="themePickerBtn" class="nav-btn" title="Change Theme (Dark, Brown, Green, Light)" aria-label="Theme">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+
+        <!-- Data Status Badge / Manager Trigger -->
+        <button id="dataStatusBadge" class="data-badge" title="Manage Question Bank Data">
+          <span class="data-dot empty" id="dataDot"></span>
+          <span id="dataStatusText">No Data</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Body Layout -->
+    <div class="app-body">
+      <!-- Sidebar Overlay for Mobile -->
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <!-- Left Sidebar: Topics and Curriculum -->
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-title">Davidson & FCPS Topics</div>
+          <div class="topic-search-box">
+            <span class="search-icon-abs">🔍</span>
+            <input type="text" id="topicFilterInput" placeholder="Filter topics...">
+          </div>
+        </div>
+
+        <!-- Topic List -->
+        <div id="topicList" class="topic-list">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="sidebar-footer">
+          <button id="importDataBtnSidebar" class="btn-secondary" style="padding: 6px 10px; font-size: 0.8rem;">
+            📁 Import / Update Data
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <!-- Topic Toolbar & Filtering -->
+        <div class="content-toolbar">
+          <div class="toolbar-top">
+            <h1 id="currentTopicTitle" class="current-topic-title">Select a Topic</h1>
+
+            <!-- Question Bank Filter Tabs -->
+            <div class="filter-group" id="bankFilterGroup">
+              <button class="filter-pill active" data-bank="ALL">All Banks</button>
+              <button class="filter-pill" data-bank="GENESIS">Genesis</button>
+              <button class="filter-pill" data-bank="BCPS_FCPS">BCPS / FCPS</button>
+              <button class="filter-pill" data-bank="MHS">MHS</button>
+            </div>
+          </div>
+
+          <div class="toolbar-bottom">
+            <!-- Format & Status Filters -->
+            <div class="filter-group">
+              <button class="filter-pill active" data-format="ALL">All Formats</button>
+              <button class="filter-pill" data-format="SBA">SBA</button>
+              <button class="filter-pill" data-format="MCQ">MCQ</button>
+              <button class="filter-pill" id="bookmarkedOnlyBtn">★ Bookmarked</button>
+            </div>
+
+            <!-- In-Topic Search Input -->
+            <div class="in-topic-search">
+              <span class="search-icon-abs">🔎</span>
+              <input type="text" id="inTopicSearchInput" placeholder="Search questions in topic...">
+            </div>
+
+            <!-- Total counter -->
+            <div id="paginationSummary" class="pagination-summary">0 questions</div>
+          </div>
+        </div>
+
+        <!-- Questions Viewport -->
+        <div id="questionViewport" class="question-viewport">
+          <div id="questionsContainer" class="questions-container">
+            <!-- Questions rendered here -->
+          </div>
+        </div>
+
+        <!-- Bottom Sticky Pagination Bar -->
+        <div id="paginationBar" class="pagination-bar">
+          <button id="prevPageBtn" class="page-btn" disabled>« Previous</button>
+          <div class="jump-group">
+            <span id="pageIndicatorText">Page 1 of 1</span>
+            <input type="number" id="jumpPageInput" class="jump-input" min="1" value="1" title="Jump to page">
+            <button id="jumpPageBtn" class="page-btn" style="padding: 6px 10px;">Go</button>
+          </div>
+          <button id="nextPageBtn" class="page-btn" disabled>Next »</button>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODALS
+       ========================================================================== -->
+
+  <!-- 1. Data Selection / Import Modal -->
+  <div id="importModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 class="modal-title">Question Bank Data Setup</h2>
+        <button class="modal-close" id="closeImportModalBtn">&times;</button>
+      </div>
+
+      <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px;">
+        To browse and practice questions, select your question data folder, zip archive, or text files.
+        <strong>All files remain 100% private and cached locally on your device</strong> in your browser's IndexedDB. No server upload occurs.
+      </p>
+
+      <!-- Drag & Drop Zone -->
+      <div id="dropzone" class="dropzone">
+        <div class="dropzone-icon">📂</div>
+        <div class="dropzone-title">Drop your Question Folder or Zip here</div>
+        <div class="dropzone-subtitle">Supports folder with 29 .txt files, or a .zip archive, or multiple .txt files</div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="import-buttons-row">
+        <!-- Folder Picker -->
+        <button id="pickFolderBtn" class="btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          Select Data Folder
+        </button>
+        <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;">
+
+        <!-- Zip Archive Picker -->
+        <button id="pickZipBtn" class="btn-secondary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          Upload Zip Archive (.zip)
+        </button>
+        <input type="file" id="zipInput" accept=".zip" style="display: none;">
+
+        <!-- Multiple Files Picker -->
+        <button id="pickFilesBtn" class="btn-secondary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Select Individual .txt Files
+        </button>
+        <input type="file" id="filesInput" multiple accept=".txt" style="display: none;">
+
+        <!-- Try Demo Button -->
+        <button id="loadDemoBtn" class="btn-secondary" style="border-style: dashed; border-color: var(--accent);">
+          ⚡ Preview Demo Questions (No files needed)
+        </button>
+      </div>
+
+      <!-- Parsing Progress Bar -->
+      <div id="parseProgressContainer" class="progress-container">
+        <div class="progress-label">
+          <span id="progressStatusText">Parsing files...</span>
+          <span id="progressPercentText">0%</span>
+        </div>
+        <div class="progress-track">
+          <div id="progressBarFill" class="progress-bar-fill"></div>
+        </div>
+      </div>
+
+      <!-- Storage Info & Reset -->
+      <div id="storageInfoSection" style="margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border-light); font-size: 0.85rem; color: var(--text-secondary); display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span id="storageStatsText">0 questions in cache</span>
+          <button id="clearDataBtn" style="color: var(--error); font-weight: 600; font-size: 0.82rem;">Clear Cache</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Theme Picker Modal -->
+  <div id="themeModal" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Select Color Theme</h2>
+        <button class="modal-close" id="closeThemeModalBtn">&times;</button>
+      </div>
+      <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 12px;">
+        Choose your preferred reading environment:
+      </p>
+      <div class="theme-options-grid">
+        <div class="theme-card-option" data-theme-val="dark">
+          <div class="theme-preview-swatch swatch-dark"></div>
+          <strong>Dark Mode</strong>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Deep Midnight</span>
+        </div>
+        <div class="theme-card-option" data-theme-val="brown">
+          <div class="theme-preview-swatch swatch-brown"></div>
+          <strong>Brown Sepia</strong>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Warm Paper / Book</span>
+        </div>
+        <div class="theme-card-option" data-theme-val="green">
+          <div class="theme-preview-swatch swatch-green"></div>
+          <strong>Medical Green</strong>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Soothing Forest</span>
+        </div>
+        <div class="theme-card-option" data-theme-val="light">
+          <div class="theme-preview-swatch swatch-light"></div>
+          <strong>Light Mode</strong>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Clean Clinical</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Font Size Modal -->
+  <div id="fontSizeModal" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Font Size & Readability</h2>
+        <button class="modal-close" id="closeFontSizeModalBtn">&times;</button>
+      </div>
+      <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 12px;">
+        Adjust reading size for questions, stems, and rationales:
+      </p>
+      <div class="font-size-grid">
+        <button class="font-size-btn" data-size="sm">Small<br><span style="font-size: 13px;">14px</span></button>
+        <button class="font-size-btn" data-size="md">Medium<br><span style="font-size: 15px;">16px</span></button>
+        <button class="font-size-btn" data-size="lg">Large<br><span style="font-size: 17px;">18px</span></button>
+        <button class="font-size-btn" data-size="xl">Extra<br><span style="font-size: 19px;">20px</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main JavaScript Application Entry -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

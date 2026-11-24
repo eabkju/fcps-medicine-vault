@@ -1,0 +1,23 @@
+# Question data files (Never commit medical question texts or archives)
+*.txt
+*.zip
+*.tar
+*.gz
+*.7z
+data/
+raw_data/
+uploads/
+
+# OS and Editor artifacts
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Node / Scratch
+node_modules/
+npm-debug.log*
+.system_generated/
+scratch/
